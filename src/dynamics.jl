@@ -1,4 +1,4 @@
-function make_nlode_sde(C::NLComponentl; u_t=nothing, sde=false, _eval_fnq=true)
+function make_nlode_sde(C::NLComponent; u_t=nothing, sde=false, _eval_fnq=true)
     # Create an ode/sde function for a given component and input function u_t. 
     # pass sde=true to get an SDE function
     # pass _eval_fnq=false to get an unevaluated 
