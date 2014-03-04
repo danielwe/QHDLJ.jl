@@ -6,7 +6,7 @@ type NLComponent
     m::Int # number internal degrees of freedom
     n::Int # number of external optical inputs
     q::Int # number of additional internal independent noises
-    A 
+    A
     B
     C
     D
