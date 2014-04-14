@@ -24,10 +24,14 @@ function linear_passive_SLH(S, L, H, l = nothing, h = nothing)
     B = sparse(-(1.0+0im) * L' * S)
     C = sparse((1.0+0im) *L)
     D = sparse((1.0+0im) *S)
-    a = -1im * h - .5 * L' * l
-    c = (1.0+0im) * l
+    a = (-1im * h - .5 * L' * l)[:]
+    c = ((1.0+0im) * l)[:]
     
-    NLComponent(m, n, 0, A, B, C, D, a, c, nothing)
+    @assert size(a,1) == m
+    @assert size(c,1) == n
+    
+    
+    NLComponent(m, n, 0, A, B, C, D, a, c)
 end
 
 
@@ -62,24 +66,44 @@ function single_mode_cavity(kappas, Delta)
 end
 
 function single_mode_kerr_cavity(kappas, Delta, chi, wigner_correction = true)
-    E = single_mode_kerr_cavity(kappas, Delta)
-    function ANL_F!(t::FLoat64, z::AbstractVector{Complex128}, w::AbstractVector{Float64}, out::AbstractVector{Complex128})
-        out[1] += chi/2im * (conj(z[1]) * z[1] - 1.) * z[1]
+    E = single_mode_cavity(kappas, Delta)
+    function ANL_F!(t::Float64, z::AbstractVector{Complex128}, w, out::AbstractVector{Complex128})
+        out[1] += chi/1im * (conj(z[1]) * z[1] - 1.) * z[1]
     end
+    function JANL!(t::Float64, z::AbstractVector{Complex128}, out1::AbstractArray{Complex128, 2}, out2::AbstractArray{Complex128, 2})
+        out1[1,1] = 2chi/1im * (conj(z[1]) * z[1] - .5)
+        out2[1,1] = chi/1im * z[1]^2
+    end
+    
+    
     E.ANL_F! = ANL_F!
+    E.JANL! = JANL!
     E
 end
 
 function nd_opo(kappas, chi, Deltas=zeros(2))
     E = linear_passive_SLH(speye(3), sparse(sqrt(eye(3) .* kappas)), [Deltas[1] 0 0; 0 Deltas[2] 0; 0 0 0])
-    function ANL_F!(t::Float64, z::AbstractVector{Complex128}, w::AbstractVector{Float64}, out::AbstractVector{Complex128})
+    function ANL_F!(t::Float64, z::AbstractVector{Complex128}, w, out::AbstractVector{Complex128})
         out[1] += chi * z[3] * conj(z[2])
         out[2] += chi * z[3] * conj(z[1])
-        out[3] += -chi * z[2] * z[3]
+        out[3] += -chi * z[1] * z[2]
     end
+    function JANL!(t::Float64, z::AbstractVector{Complex128}, out1::Array{Complex128, 2}, out2::Array{Complex128, 2})
+        out1[:,:] = 0
+        out1[1,3] = chi * conj(z[2])
+        out1[2,3] = chi * conj(z[1])
+        out1[3,1] = -chi * z[2]
+        out1[3,2] = -chi * z[1]
+
+        out2[:,:] = 0
+        out2[1,2] = chi * z[3]
+        out2[2,1] = chi * z[3]
+    end
+    
+    
     E.ANL_F! = ANL_F!
+    E.JANL! = JANL!
     E
 end
 
-
-    
+# TODO add free carrier models (including Kerr and thermal effects), two-mode cavities, two-way components

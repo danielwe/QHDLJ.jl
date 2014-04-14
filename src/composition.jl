@@ -35,29 +35,18 @@ function concatenate(E1::NLComponent, E2::NLComponent)
     
     # Handle cases where one component is static, 
     # i.e. has no internal degrees of freedom.
-    if E1.m == 0
-        @assert E1.q == 0
-        if E2.m > 0
-            ANL_F! = E2.ANL_F!
-        else 
-            # both static
-            @assert E2.q == 0
-            ANL_F! = nothing
-        end
-    else
-        if E2.m == 0
-            @assert E2.q == 0
-            ANL_F! = E1.ANL_F!
-        else
             # combine nonlinear functions into 
-            ANL_F! = (t, zs, w, out) -> begin 
-                E1.ANL_F!(t, sub(zs,1:E1.m), sub(w,1:E1.q), sub(out,1:E1.m))
-                E2.ANL_F!(t, sub(zs,E1.m:m), sub(w,E1.q:q), sub(out,E1.m:m))
-                nothing
-            end
-        end
+    ANL_F! = (t, zs, w, out) -> begin 
+        E1.ANL_F!(t, sub(zs,1:E1.m), E1.q > 0 ? sub(w,1:E1.q) : nothing, sub(out,1:E1.m))
+        E2.ANL_F!(t, sub(zs,E1.m+1:m), E2.q > 0 ? sub(w,E1.q+1:q) : nothing, sub(out,E1.m+1:m))
+        nothing
     end
     
+    JANL! = (t, zs, J1, J2) -> begin
+        E1.JANL!(t, sub(zs, 1:E1.m), sub(J1,1:E1.m, 1:E1.m), sub(J2, 1:E1.m, 1:E1.m))
+        E2.JANL!(t, sub(zs, E1.m+1:m), sub(J1, E1.m+1:m, E1.m+1:m), sub(J2, E1.m+1:m, E1.m+1:m))
+        nothing
+    end
     
     NLComponent(
         m,
@@ -69,7 +58,8 @@ function concatenate(E1::NLComponent, E2::NLComponent)
         spblocks(E1.D, E2.D),
         spcat(E1.a, E2.a),
         spcat(E1.c, E2.c),
-        ANL_F!
+        ANL_F!,
+        JANL!
         )
 end
 
@@ -111,7 +101,7 @@ function portmapping(f, t, n)
     @assert size(f) == size(t)
     fbar = _get_missing(sort(f), n)
     tbar = _get_missing(sort(t), n)
-    sparse([fbar; f], [tbar; t], ones(Int64,n))
+    sparse([fbar; f], [tbar; t], ones(Complex128,n))
 end
 
 
@@ -148,10 +138,10 @@ function feedback(E::NLComponent, nfb::Int)
     C = sparse(Ce + Dei * KCi)
     D = sparse(Dee + Dei * KDie)
 
-    a = E.a + Bi * Kc
-    c = ce + Dei * Kc
+    a = (E.a + Bi * Kc)[:]
+    c = (ce + Dei * Kc)[:]
         
-    NLComponent(m, n-nfb, E.q, A, B, C, D, a, c, E.ANL_F!)
+    NLComponent(m, n-nfb, E.q, A, B, C, D, a, c, E.ANL_F!, E.JANL!)
 end
 
 
@@ -163,10 +153,13 @@ function feedback(E::NLComponent, f::Vector{Int}, t::Vector{Int})
     p_in = portmapping(t, lastnfbports, E.n)
     p_out = portmapping(lastnfbports, f, E.n)
     
+    B = E.B * p_in
+    C = p_out * E.C
+    D = (p_out * E.D) * p_in
+    c = (p_out * E.c)[:]
     # reduce to special case by permuting the internal channels to the end
     feedback(
-        NLComponent(E.m, E.n, E.q, E.A, E.B * p_in, p_out * E.C, 
-               p_out * E.D * p_in, E.a, p_out * E.c, E.ANL_F!),
+        NLComponent(E.m, E.n, E.q, E.A, B, C, D, E.a, c, E.ANL_F!, E.JANL!),
         nfb)
 end
 
