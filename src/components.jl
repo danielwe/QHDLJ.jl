@@ -22,8 +22,8 @@ function linear_passive_SLH(S, L, H, l = nothing, h = nothing)
     end
     A = sparse(-1.0im * H - .5 * L' * L)
     B = sparse(-(1.0+0im) * L' * S)
-    C = sparse((1.0+0im) *L)
-    D = sparse((1.0+0im) *S)
+    C = sparse((1.0+0im) * L)
+    D = sparse((1.0+0im) * S)
     a = (-1im * h - .5 * L' * l)[:]
     c = ((1.0+0im) * l)[:]
     
@@ -51,8 +51,15 @@ function beamsplitter(theta, real=true)
 end
 
 
+function phase(phi)
+	linear_passive_static(speye(1) * exp(1im*phi))
+end
+
 
 function displace(amplitudes)
+	if ndims(amplitudes) == 0
+		amplitudes=[amplitudes]
+	end
     n = size(amplitudes, 1)
     l = reshape(amplitudes, (n, 1))
     S = eye(n)
@@ -100,9 +107,13 @@ function nd_opo(kappas, chi, Deltas=zeros(2))
         out2[2,1] = chi * z[3]
     end
     
+	names = String["signal", "idler", "pump"]
     
     E.ANL_F! = ANL_F!
     E.JANL! = JANL!
+	E.modes = names
+	E.input_ports = names
+	E.output_ports = names
     E
 end
 

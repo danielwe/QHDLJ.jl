@@ -1,9 +1,12 @@
-function make_nlode_sde(C::NLComponent; u_t=nothing, sde=false)
+function make_nlode_sde(C::NLSystem; u_t=nothing, sde=false)
     # Create an ode/sde function for a given component and input function u_t. 
     # pass sde=true to get an SDE function
     # pass _eval_fnq=false to get an unevaluated 
     #     expression object containing the source code for the function back.
-    
+    if typeof(C) != NLComponent
+		C = NLComponent(C)
+	end
+	
     ANL_F! = (C.ANL_F!) != nothing ? (C.ANL_F!) : ((t, z, w, zdot) -> nothing)
     if u_t == nothing
         const_z = zeros(Complex128, C.n)
@@ -44,6 +47,7 @@ type NLEvolution
     zts
     inputs
     outputs
+	internal
     u_t
     dAs
     dAouts
@@ -51,7 +55,11 @@ type NLEvolution
 end
 
 
-function solve_nlcircuit(C::NLComponent, z0::AbstractVector{Complex128}, tlist::AbstractVector{Float64}, hmax::Float64; sde=true, u_t=nothing)
+function solve_nlsystem(C::NLSystem, z0::AbstractVector{Complex128}, tlist::AbstractVector{Float64}, hmax::Float64; sde=true, u_t=nothing)
+    if typeof(C) != NLComponent
+		C = NLComponent(C)
+	end
+
     nlde! = make_nlode_sde(C; u_t=u_t, sde=sde)
 
     inputs = zeros(Complex128, C.n, length(tlist))
@@ -61,7 +69,7 @@ function solve_nlcircuit(C::NLComponent, z0::AbstractVector{Complex128}, tlist::
             inputs[:,kk] = u_t(tlist[kk])
         end
     end
-
+	ni = size(C.internal, 1)
     
     if sde
         zts, wts = rk4solve_stochastic(nlde!, z0, tlist, hmax, 2C.n + C.q)
@@ -71,10 +79,81 @@ function solve_nlcircuit(C::NLComponent, z0::AbstractVector{Complex128}, tlist::
         # print(size(C.C * zts), " ", size(C.c), " ", size(C.D * inputs), "\n")
         # print(typeof(C.C * zts), " ", typeof(C.c), " ", typeof(C.D * inputs), "\n")
         outputs = (C.C * zts .+ reshape(C.c, (C.n, 1))) + C.D * inputs
-        return NLEvolution(C, nlde!, tlist, zts, inputs, outputs, u_t, dAs, dAouts, dWs)
+		internal = (C.Ci * zts .+ reshape(C.ci, (ni, 1))) + C.Di * inputs
+        return NLEvolution(C, nlde!, tlist, zts, inputs, outputs, internal, u_t, dAs, dAouts, dWs)
     else
         zts = rk4solve(nlde!, z0, tlist, hmax)
-        outputs = (C.C * zts .+ C.c) + C.D * inputs
-        return NLEvolution(C, nlde!, tlist, zts, inputs, outputs, u_t, nothing, nothing, nothing)
+        outputs = (C.C * zts .+ reshape(C.c, (C.n, 1))) + C.D * inputs
+		internal = (C.Ci * zts .+ reshape(C.ci, (ni, 1))) + C.Di * inputs
+        return NLEvolution(C, nlde!, tlist, zts, inputs, outputs, internal, u_t, nothing, nothing, nothing)
     end
+end
+
+function inputs(e::NLEvolution, names; transp=true)
+
+	if ndims(names) == 0 
+		names=[names]
+	end
+
+	indices = indexin(names, e.nlcomponent.input_ports)
+	if any(indices .== 0)
+		error("Cannot find some names $(names[find(x->x==0, indices)])")
+	end
+
+	if transp
+		transpose(e.inputs[indices,:])
+	else
+		e.inputs[indices,:]
+	end
+end
+
+function outputs(e::NLEvolution, names; transp=true)
+	if ndims(names) == 0 
+		names=[names]
+	end
+
+	indices = indexin(names, e.nlcomponent.output_ports)
+	if any(indices .== 0)
+		error("Cannot find some names $(names[find(x->x==0, indices)])")
+	end
+
+	if transp
+		transpose(e.outputs[indices,:])
+	else
+		e.outputs[indices,:]
+	end
+
+end
+
+function modes(e::NLEvolution, names; transp=true)
+	if ndims(names) == 0 
+		names=[names]
+	end
+
+	indices = indexin(names, e.nlcomponent.modes)
+	if any(indices .== 0)
+		error("Cannot find some names $(names[find(x->x==0, indices)])")
+	end
+
+	if transp
+		transpose(e.zts[indices,:])
+	else
+		e.zts[indices,:]
+	end
+end
+
+function internal(e::NLEvolution, names; transp=true)
+	if ndims(names) == 0 
+		names=[names]
+	end
+	
+	indices = indexin(names, e.nlcomponent.internal)
+	if any(indices .== 0)
+		error("Cannot find some names $(names[find(x->x==0, indices)])")
+	end
+	if transp
+		transpose(e.internal[indices,:])
+	else
+		e.internal[indices,:]
+	end
 end
