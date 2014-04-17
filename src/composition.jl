@@ -404,7 +404,8 @@ function NLComponent(circuit::NLCircuit)
 		for kk=1:nc
 			ccc = components[kk]
 			rng = (moff + 1: moff + ccc.m)
-			ccc.JANL(t, sub(zs,  rng), sub(J1, rng, rng), sub(J2, rng, rng))
+			ccc.JANL!(t, sub(zs,  rng), sub(J1, rng, rng), sub(J2, rng, rng))
+			moff += ccc.m
 		end
 		nothing
     end
@@ -430,7 +431,46 @@ function NLComponent(circuit::NLCircuit)
 			internal[nioffsets[kk] + jj] = nnn*"."*ccc.internal[jj]
 		end
 	end
-	
+	nci = size(circuit.input_map, 1)
+	# fff = collect(1:nci)
+	# ttt = zeros(Int, nci)
+	for kk=1:nci
+		npn, cn, pn = circuit.input_map[kk,:]
+		ind = indexin([cn*"."*pn], input_ports)[1]
+	# 	ttt[kk] = ind
+		if ind > 0
+			input_ports[ind] = npn
+		else
+			error("Could not find input port $cn:$pn in circuit.")
+		end
+	end
+	# P_in = portmapping(fff, ttt, n)
+	# 
+	nco = size(circuit.output_map, 1)
+	# fff = zeros(Int, nco)
+	# ttt = collect(1:nco)
+	for kk=1:nco
+		npn, cn, pn = circuit.output_map[kk,:]
+		ind = indexin([cn*"."*pn], output_ports)[1]
+		# fff[kk] = ind
+		if ind > 0
+			output_ports[ind] = npn
+		else
+			error("Could not find output port $cn:$pn in circuit.")
+		end
+	end
+	# P_out = portmapping(fff, ttt, n)
+	# 
+	# 
+	# D = P_out * (D * P_in)
+	# Di = Di * P_in
+	# B = B * P_in
+	# C = P_out * C
+	# c = P_out * c
+	# 
+	# input_ports = input_ports[convert(Vector{Int}, P_in' * collect(1:n))]
+	# output_ports = input_ports[convert(Vector{Int}, P_out' * collect(1:n))]
+	# 
 	
 	EEE = NLComponent(m,n,q,A,B,C,D,a,c,Ci, Di, ci, ANL_F!,JANL!,modes,input_ports,output_ports, internal)
 	# show(EEE)

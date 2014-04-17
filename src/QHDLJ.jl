@@ -4,9 +4,10 @@ export NLComponent, NLCircuit, NLSystem, nlcircuit,
 	   ninputs, jacobian, feedback,
 	   linear_passive_SLH, linear_passive_static, 
 	   beamsplitter, phase, displace,
-	   single_mode_cavity, single_mode_kerr_cavity, nd_opo, 
+	   single_mode_cavity, single_mode_kerr_cavity, nd_opo, two_mode_kerr_cavity,
 	   solve_nlsystem, make_nlode_sde,
-	   inputs, outputs, modes, internal
+	   inputs, outputs, modes, internal, make_inputs,
+	   find_fixpoint, transferfunction
 
 
 using RK4

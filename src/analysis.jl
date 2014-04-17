@@ -8,6 +8,47 @@ function jacobian(C::NLComponent, t, z)
     ret
 end
 
+function ode(C::NLComponent, t, z; u_t=nothing)
+	ode = make_nlode_sde(C; u_t=u_t)
+	zdot = zeros(Complex128, C.m)
+	@assert size(z) == (C.m,)
+	ode(t, z, zdot)
+	zdot
+end
+
+
+function find_fixpoint(C::NLComponent, z0=nothing, t::Float64=0.; u_t=nothing, tol::Float64=1e-5, maxiter::Int=100, verbose=false)
+	if z0 == nothing
+		z0 = zeros(Complex128, C.m)
+	end
+    ode = make_nlode_sde(C;u_t=u_t)
+    # print("Test")
+
+    @assert size(z0) == (C.m,)
+    # need to double up the vector
+    zdu = [convert(Vector{Complex128},z0);conj(z0)]
+    zdot = zeros(Complex128, C.m)
+    ode(t, sub(zdu,1:C.m), zdot)
+
+    iter::Int = 0
+    while norm(zdot, 2) > tol && iter < maxiter
+        # TODO check if we can exploit the special structure better than this
+        zdu = zdu - (jacobian(C, t, sub(zdu, 1:C.m)) \ [zdot; conj(zdot)])
+        # enforce double-up-ness
+        for kk=1:C.m
+            zdu[C.m+kk] = conj(zdu[kk])
+        end
+        ode(t, sub(zdu,1:C.m), zdot)
+        iter += 1
+    end
+    if iter == maxiter
+        println("Warning: Did not converge to within $tol in $iter iterations. Residual norm ||zdot||_2= $(norm(zdot,2)).")
+    elseif verbose
+        println("Converged in $iter steps")
+    end
+    return zdu[1:C.m]
+end
+
 function double_up(A, B)
 	[A B; conj(B) conj(A)]
 end

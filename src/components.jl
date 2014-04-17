@@ -72,7 +72,7 @@ function single_mode_cavity(kappas, Delta)
     linear_passive_SLH(speye(n), sqrt(reshape(kappas, (n, 1))), speye(1) * Delta)
 end
 
-function single_mode_kerr_cavity(kappas, Delta, chi, wigner_correction = true)
+function single_mode_kerr_cavity(kappas, Delta, chi)
     E = single_mode_cavity(kappas, Delta)
     function ANL_F!(t::Float64, z::AbstractVector{Complex128}, w, out::AbstractVector{Complex128})
         out[1] += chi/1im * (conj(z[1]) * z[1] - 1.) * z[1]
@@ -82,11 +82,55 @@ function single_mode_kerr_cavity(kappas, Delta, chi, wigner_correction = true)
         out2[1,1] = chi/1im * z[1]^2
     end
     
-    
     E.ANL_F! = ANL_F!
     E.JANL! = JANL!
     E
 end
+
+
+function two_mode_kerr_cavity(kappas_a, kappas_b, Deltas, chis)
+	if length(Deltas) == 2
+		Delta_a, Delta_b = Deltas
+		Delta_ab = 0.
+	elseif length(Deltas) == 3
+		Delta_a, Delta_b, Delta_ab = Deltas
+	else
+		error("Deltas must have the form (Delta_a, Delta_b[, Delta_ab])")
+	end
+	chi_a, chi_b, chi_ab = chis
+	
+	na = length(kappas_a)
+	nb = length(kappas_b)
+	L = [sqrt(reshape(kappas_a, (na, 1))) zeros(na, 1);
+		 zeros(nb, 1) sqrt(reshape(kappas_b, (nb, 1)))]
+	S = speye(na + nb)
+	H = sparse([Delta_a Delta_ab;
+				conj(Delta_ab) Delta_b])
+	E = linear_passive_SLH(S, L, H)
+	
+	
+    function ANL_F!(t::Float64, z::AbstractVector{Complex128}, w, out::AbstractVector{Complex128})
+        out[1] += -1im * (chi_a * conj(z[1]) * z[1] + chi_ab * conj(z[2]) * z[2] - chi_a - chi_ab/2) * z[1]
+        out[2] += -1im * (chi_b * conj(z[2]) * z[2] + chi_ab * conj(z[1]) * z[1] - chi_b - chi_ab/2) * z[2]
+    end
+	
+    function JANL!(t::Float64, z::AbstractVector{Complex128}, out1::AbstractArray{Complex128, 2}, out2::AbstractArray{Complex128, 2})
+        out1[1,1] = -2im * chi_a * (conj(z[1]) * z[1] - .5) + 1im * chi_ab * (conj(z[2]) * z[2] - .5)
+        out1[1,2] = -1im * chi_ab * conj(z[2]) * z[1]
+        out1[2,1] = -1im * chi_ab * conj(z[1]) * z[2]
+        out1[2,2] = -2im * chi_b * (conj(z[2]) * z[2] - .5) + 1im * chi_ab * (conj(z[1]) * z[1] - .5)
+		out2[1,1] = -1im * chi_a * z[1]^2
+		out2[1,2] = -1im * chi_ab * z[1]*z[2]
+		out2[2,1] = -1im * chi_ab * z[1]*z[2]
+		out2[2,2] = -1im * chi_b * z[2]^2
+    end
+    
+    E.ANL_F! = ANL_F!
+    E.JANL! = JANL!
+	E
+end
+	
+
 
 function nd_opo(kappas, chi, Deltas=zeros(2))
     E = linear_passive_SLH(speye(3), sparse(sqrt(eye(3) .* kappas)), [Deltas[1] 0 0; 0 Deltas[2] 0; 0 0 0])
@@ -95,7 +139,7 @@ function nd_opo(kappas, chi, Deltas=zeros(2))
         out[2] += chi * z[3] * conj(z[1])
         out[3] += -chi * z[1] * z[2]
     end
-    function JANL!(t::Float64, z::AbstractVector{Complex128}, out1::Array{Complex128, 2}, out2::Array{Complex128, 2})
+    function JANL!(t::Float64, z::AbstractVector{Complex128}, out1::AbstractArray{Complex128, 2}, out2::AbstractArray{Complex128, 2})
         out1[:,:] = 0
         out1[1,3] = chi * conj(z[2])
         out1[2,3] = chi * conj(z[1])
@@ -107,7 +151,7 @@ function nd_opo(kappas, chi, Deltas=zeros(2))
         out2[2,1] = chi * z[3]
     end
     
-	names = String["signal", "idler", "pump"]
+	names = ["signal", "idler", "pump"]
     
     E.ANL_F! = ANL_F!
     E.JANL! = JANL!

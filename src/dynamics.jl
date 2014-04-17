@@ -157,3 +157,24 @@ function internal(e::NLEvolution, names; transp=true)
 		e.internal[indices,:]
 	end
 end
+
+
+function make_inputs(system, names, input_fn)
+    wrapinput=false
+    if (typeof(names) <: String)
+        names = [names]
+        wrapinput=true
+    end
+    inputs = system.input_ports
+    names = convert(Vector{ASCIIString}, names)
+    m = length(inputs)
+    n = length(names)
+    indices = indexin(names, inputs)
+    @assert all(indices .> 0)
+    mask = sparse(indices, 1:n, ones(Complex128, n), m, n)
+    if wrapinput
+        return t -> mask * [input_fn(t)]
+    else
+        return t-> mask * input_fn(t)
+    end
+end
