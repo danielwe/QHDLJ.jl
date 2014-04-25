@@ -58,7 +58,27 @@ function transferfunction(C::NLComponent, t, z, omega=0)
 	Atilde = jacobian(C, t, z)
 	Ctilde = double_up(C.C, zeros(size(C.C)))
 	Ctilde_conj = double_up(C.C', zeros(size(C.C)))
-	Dtilde = double(C.D, zeros(size(C.D)))
+	Dtilde = double_up(C.D, zeros(size(C.D)))
 	ident = eye(2*C.n)
 	(ident - Ctilde * ((-1im * omega * ident - Atilde) \ Ctilde_conj)) * Dtilde
 end
+
+function quadrature_rep_transformation(n)
+	[eye(n) 1im * eye(n); eye(n) (-1im * eye(n))]
+end
+
+function unwrap!(p)
+    length(p) < 2 && return p
+    for i = 2:length(p)
+        d = p[i] - p[i-1]
+        if abs(d) > pi
+            p[i] -= floor((d+pi) / (2pi)) * 2pi
+        end
+    end
+    return p
+end
+
+function unwrap(p)
+	return unwrap!(copy(p))
+end
+

@@ -7,7 +7,7 @@ export NLComponent, NLCircuit, NLSystem, nlcircuit,
 	   single_mode_cavity, single_mode_kerr_cavity, nd_opo, two_mode_kerr_cavity,
 	   solve_nlsystem, make_nlode_sde,
 	   inputs, outputs, modes, internal, make_inputs,
-	   find_fixpoint, transferfunction
+	   find_fixpoint, transferfunction, unwrap!, unwrap
 
 
 using RK4
