@@ -73,7 +73,7 @@ function solve_nlsystem(C::NLSystem, z0::AbstractVector{Complex128}, tlist::Abst
     
     if sde
         zts, wts = rk4solve_stochastic(nlde!, z0, tlist, hmax, 2C.n + C.q)
-        dAs = [wts[1:C.n,:] + 1im * wts[C.n+1:2C.n,:]   zeros(C.n)]
+        dAs = [wts[1:C.n,:] + 1im * wts[C.n+1:2C.n,:]   zeros(C.n)]/2
         dWs = [wts[2C.n+1:end,:]    zeros(C.q)]
         dAouts = C.D * dAs
         # print(size(C.C * zts), " ", size(C.c), " ", size(C.D * inputs), "\n")
@@ -89,7 +89,7 @@ function solve_nlsystem(C::NLSystem, z0::AbstractVector{Complex128}, tlist::Abst
     end
 end
 
-function inputs(e::NLEvolution, names; transp=true)
+function inputs(e::NLEvolution, names; transp=true, add_noise=false)
 
 	if ndims(names) == 0 
 		names=[names]
@@ -99,15 +99,21 @@ function inputs(e::NLEvolution, names; transp=true)
 	if any(indices .== 0)
 		error("Cannot find some names $(names[find(x->x==0, indices)])")
 	end
+	
+	ret = e.inputs[indices,:]
+	
+	if add_noise
+		ret += e.dAs[indices,:]
+	end
 
 	if transp
-		transpose(e.inputs[indices,:])
+		transpose(ret)
 	else
-		e.inputs[indices,:]
+		ret
 	end
 end
 
-function outputs(e::NLEvolution, names; transp=true)
+function outputs(e::NLEvolution, names; transp=true, add_noise=false)
 	if ndims(names) == 0 
 		names=[names]
 	end
@@ -116,11 +122,17 @@ function outputs(e::NLEvolution, names; transp=true)
 	if any(indices .== 0)
 		error("Cannot find some names $(names[find(x->x==0, indices)])")
 	end
-
+	
+	ret = e.outputs[indices,:]
+	
+	if add_noise
+		ret += e.dAouts[indices,:]
+	end
+	
 	if transp
-		transpose(e.outputs[indices,:])
+		transpose(ret)
 	else
-		e.outputs[indices,:]
+		ret
 	end
 
 end

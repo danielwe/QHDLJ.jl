@@ -337,11 +337,17 @@ nlcircuit(components::Dict, connections::AbstractArray{ASCIIString, 2}; flatten=
 
 
 function NLComponent(circuit::NLCircuit)
-	names, components = zip(collect(circuit.components)...)
+	
+	local components::Vector{NLComponent} = collect(values(circuit.components))
+	local names::Vector{ASCIIString} = collect(keys(circuit.components))
+	
+	for kk=1:length(names)
+		@assert circuit.components[names[kk]] == components[kk]
+	end
 	
 	nfb = size(circuit.connections, 1)
 	
-	nc = length(components)
+	nc::Int64 = length(components)
 	ms = [c.m for c in components]
 	ns = [c.n for c in components]
 	nis = [size(c.internal,1) for c in components]
@@ -380,32 +386,55 @@ function NLComponent(circuit::NLCircuit)
 	
 	
     ANL_F! = (t, zs, w, out) -> begin 
-		local moff = 0
-		local qoff = 0
+		local moff::Int64 = 0
+		local qoff::Int64 = 0
+		local kk::Int64
+		local cm, cq
+		local subz::SubArray = sub(zs, 1:m)
+		local subzdot::SubArray = sub(out, 1:m)
+		local subw::SubArray		
+		wthere =  w != nothing
+		if wthere
+			subw = sub(w, 1:q)
+		end
 		for kk=1:nc
-			ccc = components[kk]
-			components[kk].ANL_F!(t, 
-				sub(zs, 1+moff : moff + ccc.m), 
-				ccc.q > 0 ? sub(w, 1 + qoff : qoff + ccc.q) : nothing,
-				sub(out, 1+moff : moff + ccc.m))
-			moff += ccc.m
-			qoff += ccc.q
+			cm = components[kk].m
+			cq = components[kk].q
+			if cm > 0
+				subz.indexes = ((1+moff : moff + cm),)
+				subz.dims = (cm,)
+				subz.first_index= 1+moff
+				subzdot.indexes = ((1+moff : moff + cm),)
+				subzdot.dims = (cm,)
+				subzdot.first_index= 1+moff
+				if wthere && cq > 0
+					subq.indexes = ((1+qoff: qoff + cq),)
+					subq.dims = (cq,)
+					subq.first_index = 1+qoff
+				end		
+				components[kk].ANL_F!(t, 
+					subz, 
+					(wthere && cq > 0) ? subq : nothing,
+					subzdot)
+				moff += cm
+				qoff += cq
+			end
 		end
 		nothing
 	end
-									
-    #     E1.ANL_F!(t, sub(zs,1:E1.m), E1.q > 0 ? sub(w,1:E1.q) : nothing, sub(out,1:E1.m))
-    #     E2.ANL_F!(t, sub(zs,E1.m+1:m), E2.q > 0 ? sub(w,E1.q+1:q) : nothing, sub(out,E1.m+1:m))
-    #     nothing
-    # end
     
     JANL! = (t, zs, J1, J2) -> begin
-		local moff = 0
+		local moff::Int64 = 0
+		local ccc::NLComponent
+		local kk::Int64
+		local rng::Range1{Int64}
 		for kk=1:nc
 			ccc = components[kk]
-			rng = (moff + 1: moff + ccc.m)
-			ccc.JANL!(t, sub(zs,  rng), sub(J1, rng, rng), sub(J2, rng, rng))
-			moff += ccc.m
+			if ccc.m > 0
+				rng = (moff + 1: moff + ccc.m)
+				ccc.JANL!(t, sub(zs,  rng), sub(J1, rng, rng), sub(J2, rng, rng))
+				moff += ccc.m
+			end
 		end
 		nothing
     end
