@@ -154,7 +154,7 @@ function modes(e::NLEvolution, names; transp=true)
 	end
 end
 
-function internal(e::NLEvolution, names; transp=true)
+function internal(e::NLEvolution, names; transp=true, add_noise=false)
 	if ndims(names) == 0 
 		names=[names]
 	end
@@ -163,11 +163,18 @@ function internal(e::NLEvolution, names; transp=true)
 	if any(indices .== 0)
 		error("Cannot find some names $(names[find(x->x==0, indices)])")
 	end
-	if transp
-		transpose(e.internal[indices,:])
-	else
-		e.internal[indices,:]
+    ret = e.internal[indices,:]
+    
+    
+	if add_noise
+		ret += (e.nlcomponent.Di * e.dAs)[indices,:]
 	end
+    
+	if transp
+		ret = transpose(ret)
+	end
+    
+    ret
 end
 
 

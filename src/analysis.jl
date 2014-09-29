@@ -16,7 +16,6 @@ function ode(C::NLComponent, t, z; u_t=nothing)
 	zdot
 end
 
-
 function find_fixpoint(C::NLComponent, z0=nothing, t::Float64=0.; u_t=nothing, tol::Float64=1e-5, maxiter::Int=100, verbose=false)
 	if z0 == nothing
 		z0 = zeros(Complex128, C.m)
@@ -28,18 +27,35 @@ function find_fixpoint(C::NLComponent, z0=nothing, t::Float64=0.; u_t=nothing, t
 
     # need to double up the vector
     zdu = [convert(Vector{Complex128},z0);conj(z0)]
+    zdu2 = zero(zdu)
     zdot = zeros(Complex128, C.m)
     ode(t, sub(zdu,1:C.m), zdot)
 
     iter::Int = 0
-    while norm(zdot, 2) > tol && iter < maxiter
-        # TODO check if we can exploit the special structure better than this
-        zdu = zdu - (jacobian(C, t, sub(zdu, 1:C.m)) \ [zdot; conj(zdot)])
-        # enforce double-up-ness
-        for kk=1:C.m
-            zdu[C.m+kk] = conj(zdu[kk])
+    nzdot = norm(zdot, 2)
+    alpha = 1.
+    while nzdot > tol && iter < maxiter
+        grad = (jacobian(C, t, sub(zdu, 1:C.m)) \ [zdot; conj(zdot)])
+        nzdot2 = nzdot
+        alpha = 1.
+        
+        while nzdot2 >= nzdot
+            
+            # perform line search by iterating alpha->1., 1./2, 1./4, ... 
+            # until norm of gradient at target point decreases
+            
+            zdu2 = zdu - alpha * grad
+            
+            # enforce double-up-ness
+            for kk=1:C.m
+                zdu2[C.m+kk] = conj(zdu2[kk])
+            end
+            ode(t, sub(zdu2,1:C.m), zdot)
+            nzdot2 = norm(zdot, 2)
+            alpha /= 2
         end
-        ode(t, sub(zdu,1:C.m), zdot)
+        nzdot = nzdot2
+        zdu[:] = zdu2[:]
         iter += 1
     end
     if iter == maxiter
@@ -49,6 +65,7 @@ function find_fixpoint(C::NLComponent, z0=nothing, t::Float64=0.; u_t=nothing, t
     end
     return zdu[1:C.m]
 end
+
 
 function double_up(A, B)
 	[A B; conj(B) conj(A)]
@@ -282,7 +299,7 @@ function linearize(C::NLComponent, z, t=0.; u_t=nothing)
 
     if u_t != nothing
         c = c + C.D * u_t(t)
-        ci = ci + C.Di
+        ci = ci + C.Di * u_t(theta)
     end
 
     Jnl = sparse(J[1:C.m, C.m+1:end])
