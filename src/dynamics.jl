@@ -55,10 +55,12 @@ type NLEvolution
 end
 
 
-function solve_nlsystem(C::NLSystem, z0::AbstractVector{Complex128}, tlist::AbstractVector{Float64}, hmax::Float64; sde=true, u_t=nothing)
+function solve_nlsystem(C::NLSystem, z0::AbstractVector, tlist::AbstractVector{Float64}, hmax::Float64; sde=true, u_t=nothing, verbose=true, seed=0)
     if typeof(C) != NLComponent
 		C = NLComponent(C)
 	end
+
+    z0 = (1+0im) * z0
 
     nlde! = make_nlode_sde(C; u_t=u_t, sde=sde)
 
@@ -72,7 +74,7 @@ function solve_nlsystem(C::NLSystem, z0::AbstractVector{Complex128}, tlist::Abst
 	ni = size(C.internal, 1)
     
     if sde
-        zts, wts = rk4solve_stochastic(nlde!, z0, tlist, hmax, 2C.n + C.q)
+        zts, wts = rk4solve_stochastic(nlde!, z0, tlist, hmax, 2C.n + C.q; verbose=verbose, seed=seed)
         dAs = [wts[1:C.n,:] + 1im * wts[C.n+1:2C.n,:]   zeros(C.n)]/2
         dWs = [wts[2C.n+1:end,:]    zeros(C.q)]
         dAouts = C.D * dAs
@@ -82,7 +84,7 @@ function solve_nlsystem(C::NLSystem, z0::AbstractVector{Complex128}, tlist::Abst
 		internal = (C.Ci * zts .+ reshape(C.ci, (ni, 1))) + C.Di * inputs
         return NLEvolution(C, nlde!, tlist, zts, inputs, outputs, internal, u_t, dAs, dAouts, dWs)
     else
-        zts = rk4solve(nlde!, z0, tlist, hmax)
+        zts = rk4solve(nlde!, z0, tlist, hmax; verbose=verbose)
         outputs = (C.C * zts .+ reshape(C.c, (C.n, 1))) + C.D * inputs
 		internal = (C.Ci * zts .+ reshape(C.ci, (ni, 1))) + C.Di * inputs
         return NLEvolution(C, nlde!, tlist, zts, inputs, outputs, internal, u_t, nothing, nothing, nothing)

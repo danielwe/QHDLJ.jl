@@ -11,11 +11,11 @@ function spblocks(A,B)
 end
 
 function spblocks(A, B...)
-	if length(B) >= 1
-		spblocks(A, apply(spblocks, B))
-	else
-		A
-	end
+    if length(B) >= 1
+        spblocks(A, apply(spblocks, B))
+    else
+        A
+    end
 end
 
 # function spcat(a, b)
@@ -70,10 +70,10 @@ end
 
 # helper function to find unspecified ports
 function _get_missing(sorted_indices::Vector{Int}, n::Int)
-	# dump(sorted_indices)
-	# dump(n)
-	@assert (length(sorted_indices) == 0) || (maximum(sorted_indices) <= n)
-	@assert length(sorted_indices) <= n
+    # dump(sorted_indices)
+    # dump(n)
+    @assert (length(sorted_indices) == 0) || (maximum(sorted_indices) <= n)
+    @assert length(sorted_indices) <= n
     ret = zeros(Int, n-length(sorted_indices))
     jj = 1
     ll = 1
@@ -98,7 +98,7 @@ end
 #     n = size(B, 2)
 #     ret = zeros(promote_type(T, S), m, n)
 #     for kk = 1:n
-#         ret[:,kk] = A \ dense(B[:,kk])[:]
+#         ret[:,kk] = A \ full(B[:,kk])[:]
 #     end
 #     ret
 # end
@@ -113,7 +113,7 @@ function portmapping(f::Vector{Int}, t::Vector{Int}, n::Int)
 end
 
 # function portmapping_component(f, t, n)
-# 	linear_passive_static(portmapping(f, t, n))
+#   linear_passive_static(portmapping(f, t, n))
 # end
 
 
@@ -138,9 +138,9 @@ function feedback(E::NLComponent, nfb::Int)
     # compute the necessary inverses via an LU-factorization.
     # It turns out this can almost always (except when nfb approaches 10^4)
     # be done faster with dense representations.
-    K = lufact(eye(Complex128, nfb) - dense(Dii)) 
-    KCi=sparse(K \ dense(Ci))
-    KDie=sparse(K \ dense(Die))
+    K = lufact(eye(Complex128, nfb) - full(Dii)) 
+    KCi=sparse(K \ full(Ci))
+    KDie=sparse(K \ full(Die))
     Kc = (K \ ci)
     
     # update model matrices
@@ -152,22 +152,22 @@ function feedback(E::NLComponent, nfb::Int)
 
     a = (E.a + Bi * Kc)[:]
     c = (ce + Dei * Kc)[:]
-	
-	ni = size(E.internal, 1)
-	# update internal modes
-	Dip_e = E.Di[1:ni, 1:n-nfb]
-	Dip_i = E.Di[1:ni, n-nfb+1:n]
-	
-	Cip = [E.Ci + Dip_i * KCi; KCi]
-	Dip = [Dip_e + Dip_i * KDie; KDie]
-	cip = [E.ci + Dip_i * Kc; Kc]
-	internalp = [E.internal; E.output_ports[n-nfb+1:end]]
-	
+    
+    ni = size(E.internal, 1)
+    # update internal modes
+    Dip_e = E.Di[1:ni, 1:n-nfb]
+    Dip_i = E.Di[1:ni, n-nfb+1:n]
+    
+    Cip = [E.Ci + Dip_i * KCi; KCi]
+    Dip = [Dip_e + Dip_i * KDie; KDie]
+    cip = [E.ci + Dip_i * Kc; Kc]
+    internalp = [E.internal; E.output_ports[n-nfb+1:end]]
+    
     NLComponent(m, n-nfb, E.q, A, B, C, D, a, c, 
-		Cip, Dip, cip,
-		E.ANL_F!, E.JANL!, E.modes, 
-		E.input_ports[1:n-nfb], E.output_ports[1:n-nfb], 
-		internalp)
+        Cip, Dip, cip,
+        E.ANL_F!, E.JANL!, E.modes, 
+        E.input_ports[1:n-nfb], E.output_ports[1:n-nfb], 
+        internalp)
 end
 
 
@@ -182,26 +182,26 @@ function feedback(E::NLComponent, f::Vector{Int}, t::Vector{Int})
     B = E.B * p_in
     C = p_out * E.C
     D = p_out * E.D * p_in
-	Di = E.Di * p_in
+    Di = E.Di * p_in
     # D::SparseMatrixCSC = E.D * p_in
-	# dump(p_out)
-	# dump(D)
-	# dump(typeof(p_out))
-	# dump(typeof(D))
-	# # dump(methods((*), (typeof(p_out), typeof(D))))
-	# dump(p_out.n)
-	# dump(size(D))
-	# dump(methods(size, (typeof(D),)))
-	# D = p_out * D
-	# D = invoke((*), (SparseMatrixCSC, SparseMatrixCSC), p_out, D)
+    # dump(p_out)
+    # dump(D)
+    # dump(typeof(p_out))
+    # dump(typeof(D))
+    # # dump(methods((*), (typeof(p_out), typeof(D))))
+    # dump(p_out.n)
+    # dump(size(D))
+    # dump(methods(size, (typeof(D),)))
+    # D = p_out * D
+    # D = invoke((*), (SparseMatrixCSC, SparseMatrixCSC), p_out, D)
     c = (p_out * E.c)[:]
-	
-	pinind = convert(Vector{Int}, p_in' * collect(1:E.n))
-	input_ports = E.input_ports[pinind]
+    
+    pinind = convert(Vector{Int}, p_in' * collect(1:E.n))
+    input_ports = E.input_ports[pinind]
 
-	poutind = convert(Vector{Int},p_out * collect(1:E.n))
-	output_ports = E.output_ports[poutind]
-	
+    poutind = convert(Vector{Int},p_out * collect(1:E.n))
+    output_ports = E.output_ports[poutind]
+    
     # reduce to special case by permuting the internal channels to the end
     feedback(
         NLComponent(E.m, E.n, E.q, E.A, B, C, D, E.a, c, E.Ci, Di, E.ci, E.ANL_F!, E.JANL!, E.modes, input_ports, output_ports, E.internal),
@@ -236,100 +236,100 @@ end
 
 
 function nlcircuit(components::Dict, connections::AbstractArray{ASCIIString, 2}, input_map::AbstractArray{ASCIIString, 2}, output_map::AbstractArray{ASCIIString, 2}; flatten=true)
-	all_components = Dict{ASCIIString, NLComponent}()
-	all_connections = copy(connections)
-	new_internal_connections=Array(ASCIIString, (0, 4))
-	all_inputs = copy(input_map)
-	all_outputs = copy(output_map)
-	
-	
-	for (cname, comp) in components
-		if typeof(comp) == NLCircuit
-			if flatten
-				
-				input_dict = {comp.input_map[kk,1]=> comp.input_map[kk,2:3][:] for kk=1:size(comp.input_map,1)}
-				output_dict = {comp.output_map[kk,1]=> comp.output_map[kk,2:3][:] for kk=1:size(comp.output_map,1)}
-				
-				for (cname_int, comp_int) in comp.components
-					all_components[cname*"."*cname_int] = comp_int
-				end
-				for kk = 1:size(all_connections,1)
-					fn, fp, tn, tp = all_connections[kk,:]
-					dosth = false
-					
-					if fn == cname
-						dosth = true
-						if !haskey(output_dict, fp)
-							# fn = cname*"."*fn
-							error("You can only connect outputs of an NLCircuit that are declared in the output_map: $fp isn't. Either convert $fn to an NLComponent first or change its output_map.")
-						else
-							subfn, subfp = output_dict[fp]
-							fn = cname*"."*subfn
-							fp = subfp
-						end
-					end
-					if tn == cname
-						dosth = true
-						if !haskey(input_dict, tp)
-							error("You can only connect inputs of an NLCircuit that are declared in the input_map: $tp isn't. Either convert $tn to an NLComponent first or change its input_map")
-							# tn = cname*"."*tn
-						else
-							subtn, subtp = input_dict[tp]
-							tn = cname*"."*subtn
-							tp = subtp
-						end
-					end
-					if dosth
-						all_connections[kk,:] = [fn fp tn tp]
-					end
-				end
-				new_connections = copy(comp.connections)
-				
-				for kk = 1:size(new_connections, 1)
-					fn, fp, tn, tp = comp.connections[kk,:]
-					new_connections[kk,:] = [cname*"."*fn fp cname*"."*tn tp]
-				end
-				new_internal_connections = [new_internal_connections; new_connections]
-				
-				# handle input output map translation
-				for kk=1:size(all_inputs, 1)
-					ip, cn, cp = all_inputs[kk,:]
-					if cn == cname
-						if haskey(input_dict, cp)
-							subn, subp = input_dict[cp]
-							cn = cname*"."*subn
-							cp = subp
-						else
-							cn = cname*"."*cn
-						end
-						all_inputs[kk,:] = [ip cn cp]
-					end
-				end
-				
-				for kk=1:size(all_outputs, 1)
-					op, cn, cp = all_outputs[kk,:]
-					if cn == cname
-						if haskey(output_dict, cp)
-							subn, subp = output_dict[cp]
-							cn = cname*"."*subn
-							cp = subp
-						else
-							cn = cname*"."*cn
-						end
-						all_outputs[kk,:] = [op cn cp]
-					end
-				end
-						
-			else
-				all_components[cname] = NLComponent(comp)
-			end
-		else
-			all_components[cname] = comp
-		end
-		
-	end
-	all_connections = [all_connections; new_internal_connections]
-	NLCircuit(all_components, all_connections, all_inputs, all_outputs)
+    all_components = Dict{ASCIIString, NLComponent}()
+    all_connections = copy(connections)
+    new_internal_connections=Array(ASCIIString, (0, 4))
+    all_inputs = copy(input_map)
+    all_outputs = copy(output_map)
+    
+    
+    for (cname, comp) in components
+        if typeof(comp) == NLCircuit
+            if flatten
+                
+                input_dict = {comp.input_map[kk,1]=> comp.input_map[kk,2:3][:] for kk=1:size(comp.input_map,1)}
+                output_dict = {comp.output_map[kk,1]=> comp.output_map[kk,2:3][:] for kk=1:size(comp.output_map,1)}
+                
+                for (cname_int, comp_int) in comp.components
+                    all_components[cname*"."*cname_int] = comp_int
+                end
+                for kk = 1:size(all_connections,1)
+                    fn, fp, tn, tp = all_connections[kk,:]
+                    dosth = false
+                    
+                    if fn == cname
+                        dosth = true
+                        if !haskey(output_dict, fp)
+                            # fn = cname*"."*fn
+                            error("You can only connect outputs of an NLCircuit that are declared in the output_map: $fp isn't. Either convert $fn to an NLComponent first or change its output_map.")
+                        else
+                            subfn, subfp = output_dict[fp]
+                            fn = cname*"."*subfn
+                            fp = subfp
+                        end
+                    end
+                    if tn == cname
+                        dosth = true
+                        if !haskey(input_dict, tp)
+                            error("You can only connect inputs of an NLCircuit that are declared in the input_map: $tp isn't. Either convert $tn to an NLComponent first or change its input_map")
+                            # tn = cname*"."*tn
+                        else
+                            subtn, subtp = input_dict[tp]
+                            tn = cname*"."*subtn
+                            tp = subtp
+                        end
+                    end
+                    if dosth
+                        all_connections[kk,:] = [fn fp tn tp]
+                    end
+                end
+                new_connections = copy(comp.connections)
+                
+                for kk = 1:size(new_connections, 1)
+                    fn, fp, tn, tp = comp.connections[kk,:]
+                    new_connections[kk,:] = [cname*"."*fn fp cname*"."*tn tp]
+                end
+                new_internal_connections = [new_internal_connections; new_connections]
+                
+                # handle input output map translation
+                for kk=1:size(all_inputs, 1)
+                    ip, cn, cp = all_inputs[kk,:]
+                    if cn == cname
+                        if haskey(input_dict, cp)
+                            subn, subp = input_dict[cp]
+                            cn = cname*"."*subn
+                            cp = subp
+                        else
+                            cn = cname*"."*cn
+                        end
+                        all_inputs[kk,:] = [ip cn cp]
+                    end
+                end
+                
+                for kk=1:size(all_outputs, 1)
+                    op, cn, cp = all_outputs[kk,:]
+                    if cn == cname
+                        if haskey(output_dict, cp)
+                            subn, subp = output_dict[cp]
+                            cn = cname*"."*subn
+                            cp = subp
+                        else
+                            cn = cname*"."*cn
+                        end
+                        all_outputs[kk,:] = [op cn cp]
+                    end
+                end
+                        
+            else
+                all_components[cname] = NLComponent(comp)
+            end
+        else
+            all_components[cname] = comp
+        end
+        
+    end
+    all_connections = [all_connections; new_internal_connections]
+    NLCircuit(all_components, all_connections, all_inputs, all_outputs)
 end
 
 nlcircuit(components::Dict; flatten=false) = nlcircuit(components, Array(ASCIIString, (0, 4)); flatten=flatten)
@@ -337,220 +337,226 @@ nlcircuit(components::Dict, connections::AbstractArray{ASCIIString, 2}; flatten=
 
 
 function NLComponent(circuit::NLCircuit)
-	
-	local components::Vector{NLComponent} = collect(values(circuit.components))
-	local names::Vector{ASCIIString} = collect(keys(circuit.components))
-	
-	for kk=1:length(names)
-		@assert circuit.components[names[kk]] == components[kk]
-	end
-	
-	nfb = size(circuit.connections, 1)
-	
-	nc::Int64 = length(components)
-	ms = [c.m for c in components]
-	ns = [c.n for c in components]
-	nis = [size(c.internal,1) for c in components]
-	
-	qs = [c.q for c in components]
-	moffsets = [0; cumsum(ms)]
-	noffsets = [0; cumsum(ns)]
-	nioffsets = [0; cumsum(nis)]
-	qoffsets = [0; cumsum(qs)]
-	
-	noffsets_by_name = {name => n for (name,n) in zip(names, noffsets)}
-	
-	m = sum(ms)
-	n = sum(ns)
-	q = sum(qs)
+    
+    local components::Vector{NLComponent} = collect(values(circuit.components))
+    local names::Vector{ASCIIString} = collect(keys(circuit.components))
+    
+    for kk=1:length(names)
+        @assert circuit.components[names[kk]] == components[kk]
+    end
+    
+    nfb = size(circuit.connections, 1)
+    
+    nc::Int64 = length(components)
+    ms = [c.m for c in components]
+    ns = [c.n for c in components]
+    nis = [size(c.internal,1) for c in components]
+    
+    qs = [c.q for c in components]
+    moffsets = [0; cumsum(ms)]
+    noffsets = [0; cumsum(ns)]
+    nioffsets = [0; cumsum(nis)]
+    qoffsets = [0; cumsum(qs)]
+    
+    noffsets_by_name = {name => n for (name,n) in zip(names, noffsets)}
+    
+    m = sum(ms)
+    n = sum(ns)
+    q = sum(qs)
 
-	A = spblocks([c.A for c in components]...)
-	B = spblocks([c.B for c in components]...)
-	C = spblocks([c.C for c in components]...)
-	D = spblocks([c.D for c in components]...)
-	a = vcat([c.a for c in components]...)
-	c = vcat([c.c for c in components]...)
-	Ci = spblocks([c.Ci for c in components]...)
-	Di = spblocks([c.Di for c in components]...)
-	ci = vcat([c.ci for c in components]...)
-	
-	f = zeros(Int, nfb)
-	t = zeros(Int, nfb)
-	for kk=1:nfb
-		fn, fp, tn, tp = circuit.connections[kk,:]
-		fp_index = indexin([fp], circuit.components[fn].output_ports)[1]
-		tp_index = indexin([tp], circuit.components[tn].input_ports)[1]
-		f[kk] = noffsets_by_name[fn] + fp_index
-		t[kk] = noffsets_by_name[tn] + tp_index
-	end
-	
-	
+    A = spblocks([c.A for c in components]...)
+    B = spblocks([c.B for c in components]...)
+    C = spblocks([c.C for c in components]...)
+    D = spblocks([c.D for c in components]...)
+    a = vcat([c.a for c in components]...)
+    c = vcat([c.c for c in components]...)
+    Ci = spblocks([c.Ci for c in components]...)
+    Di = spblocks([c.Di for c in components]...)
+    ci = vcat([c.ci for c in components]...)
+    
+    f = zeros(Int, nfb)
+    t = zeros(Int, nfb)
+    for kk=1:nfb
+        fn, fp, tn, tp = circuit.connections[kk,:]
+        fp_index = indexin([fp], circuit.components[fn].output_ports)[1]
+        tp_index = indexin([tp], circuit.components[tn].input_ports)[1]
+        f[kk] = noffsets_by_name[fn] + fp_index
+        t[kk] = noffsets_by_name[tn] + tp_index
+    end
+    
+    
     ANL_F! = (t, zs, w, out) -> begin 
-		local moff::Int64 = 0
-		local qoff::Int64 = 0
-		local kk::Int64
-		local cm, cq
-		local subz::SubArray = sub(zs, 1:m)
-		local subzdot::SubArray = sub(out, 1:m)
-		local subw::SubArray		
-		wthere =  w != nothing
-		if wthere
-			subw = sub(w, 1:q)
-		end
-		for kk=1:nc
-			cm = components[kk].m
-			cq = components[kk].q
-			if cm > 0
-				subz.indexes = ((1+moff : moff + cm),)
-				subz.dims = (cm,)
-				subz.first_index= 1+moff
-				subzdot.indexes = ((1+moff : moff + cm),)
-				subzdot.dims = (cm,)
-				subzdot.first_index= 1+moff
-				if wthere && cq > 0
-					subq.indexes = ((1+qoff: qoff + cq),)
-					subq.dims = (cq,)
-					subq.first_index = 1+qoff
-				end		
-				components[kk].ANL_F!(t, 
-					subz, 
-					(wthere && cq > 0) ? subq : nothing,
-					subzdot)
-				moff += cm
-				qoff += cq
-			end
-		end
-		nothing
-	end
+        local moff::Int64 = 0
+        local qoff::Int64 = 0
+        local kk::Int64
+        local cm, cq
+        # local subz::SubArray = sub(zs, 1:m)
+        # local subzdot::SubArray = sub(out, 1:m)
+        # local subw::SubArray        
+        wthere =  w != nothing
+        # if wthere
+        #     subw = sub(w, 1:q)
+        # end
+        for kk=1:nc
+            cm = components[kk].m
+            cq = components[kk].q
+            if cm > 0
+                # subz.indexes.start = 1+moff 
+                # subz.indexes.stop = moff + cm
+                # subz.dims = (cm,)
+                # subz.first_index= 1+moff
+                # subzdot.indexes.start = 1+moff
+                # subzdot.indexes.stop =  moff + cm
+                # subzdot.dims = (cm,)
+                # subzdot.first_index= 1+moff
+                # if wthere && cq > 0
+                #     subq.indexes = ((1+qoff: qoff + cq),)
+                #     subq.dims = (cq,)
+                #     subq.first_index = 1+qoff
+                # end     
+                components[kk].ANL_F!(t, 
+                    # subz, 
+                    # (wthere && cq > 0) ? subq : nothing,
+                    # subzdot
+                    sub(zs, (1+moff) : (moff+cm)),
+                    (wthere && cq > 0) ? sub(w,(1+qoff) : (qoff+cq)) : nothing,
+                    sub(out, (1 + moff) : (moff + cm))
+                    )
+                moff += cm
+                qoff += cq
+            end
+        end
+        nothing
+    end
     
     JANL! = (t, zs, J1, J2) -> begin
-		local moff::Int64 = 0
-		local ccc::NLComponent
-		local kk::Int64
-		local rng::Range1{Int64}
-		for kk=1:nc
-			ccc = components[kk]
-			if ccc.m > 0
-				rng = (moff + 1: moff + ccc.m)
-				ccc.JANL!(t, sub(zs,  rng), sub(J1, rng, rng), sub(J2, rng, rng))
-				moff += ccc.m
-			end
-		end
-		nothing
+        local moff::Int64 = 0
+        local ccc::NLComponent
+        local kk::Int64
+        local rng::Range1{Int64}
+        for kk=1:nc
+            ccc = components[kk]
+            if ccc.m > 0
+                rng = (moff + 1: moff + ccc.m)
+                ccc.JANL!(t, sub(zs,  rng), sub(J1, rng, rng), sub(J2, rng, rng))
+                moff += ccc.m
+            end
+        end
+        nothing
     end
-	
-	ni = sum(nis)
-	
-	input_ports = Array(ASCIIString, n)
-	output_ports = Array(ASCIIString, n)
-	modes = Array(ASCIIString, m)
-	internal = Array(ASCIIString, ni)
-	
-	for kk=1:nc
-		nnn = names[kk]
-		ccc = components[kk]
-		for jj=1:ccc.n
-			input_ports[noffsets[kk] + jj] = nnn*"."*ccc.input_ports[jj]
-			output_ports[noffsets[kk] + jj] = nnn*"."*ccc.output_ports[jj]
-		end
-		for jj=1:ccc.m
-			modes[moffsets[kk]+jj] = nnn*"."*ccc.modes[jj]
-		end
-		for jj=1:nis[kk]
-			internal[nioffsets[kk] + jj] = nnn*"."*ccc.internal[jj]
-		end
-	end
-	nci = size(circuit.input_map, 1)
-	# fff = collect(1:nci)
-	# ttt = zeros(Int, nci)
-	for kk=1:nci
-		npn, cn, pn = circuit.input_map[kk,:]
-		ind = indexin([cn*"."*pn], input_ports)[1]
-	# 	ttt[kk] = ind
-		if ind > 0
-			input_ports[ind] = npn
-		else
-			error("Could not find input port $cn:$pn in circuit.")
-		end
-	end
-	# P_in = portmapping(fff, ttt, n)
-	# 
-	nco = size(circuit.output_map, 1)
-	# fff = zeros(Int, nco)
-	# ttt = collect(1:nco)
-	for kk=1:nco
-		npn, cn, pn = circuit.output_map[kk,:]
-		ind = indexin([cn*"."*pn], output_ports)[1]
-		# fff[kk] = ind
-		if ind > 0
-			output_ports[ind] = npn
-		else
-			error("Could not find output port $cn:$pn in circuit.")
-		end
-	end
-	# P_out = portmapping(fff, ttt, n)
-	# 
-	# 
-	# D = P_out * (D * P_in)
-	# Di = Di * P_in
-	# B = B * P_in
-	# C = P_out * C
-	# c = P_out * c
-	# 
-	# input_ports = input_ports[convert(Vector{Int}, P_in' * collect(1:n))]
-	# output_ports = input_ports[convert(Vector{Int}, P_out' * collect(1:n))]
-	# 
-	
-	EEE = NLComponent(m,n,q,A,B,C,D,a,c,Ci, Di, ci, ANL_F!,JANL!,modes,input_ports,output_ports, internal)
-	# show(EEE)
-	# show(f)
-	# show(t)
-	# if connections, apply feedback
-	if nfb>0
-		EEE = feedback(EEE, f, t)
-	end
-	
-	# nci = size(circuit.input_map, 1)
-	# fff = collect(1:nci)
-	# ttt = zeros(Int, nci)
-	# for kk=1:nci
-	# 	npn, cn, pn = circuit.input_map[kk,:]
-	# 	ind = indexin([cn*"."*pn], input_ports)[1]
-	# 	ttt[kk] = ind
-	# 	if ind > 0
-	# 		input_ports[ind] = npn
-	# 	else
-	# 		error("Could not find input port $cn:$pn in circuit.")
-	# 	end
-	# end
-	# P_in = portmapping(fff, ttt, n)
-	# 
-	# nco = size(circuit.output_map, 1)
-	# fff = zeros(Int, nco)
-	# ttt = collect(1:nco)
-	# for kk=1:nco
-	# 	npn, cn, pn = circuit.output_map[kk,:]
-	# 	ind = indexin([cn*"."*pn], output_ports)[1]
-	# 	fff[kk] = ind
-	# 	if ind > 0
-	# 		output_ports[ind] = npn
-	# 	else
-	# 		error("Could not find output port $cn:$pn in circuit.")
-	# 	end
-	# end
-	# P_out = portmapping(fff, ttt, n)
-	# 
-	# 
-	# D = P_out * (D * P_in)
-	# Di = Di * P_in
-	# B = B * P_in
-	# C = P_out * C
-	# c = P_out * c
-	# 
-	# input_ports = input_ports[convert(Vector{Int}, P_in' * collect(1:n))]
-	# output_ports = input_ports[convert(Vector{Int}, P_out' * collect(1:n))]
-	# 
-	EEE
+    
+    ni = sum(nis)
+    
+    input_ports = Array(ASCIIString, n)
+    output_ports = Array(ASCIIString, n)
+    modes = Array(ASCIIString, m)
+    internal = Array(ASCIIString, ni)
+    
+    for kk=1:nc
+        nnn = names[kk]
+        ccc = components[kk]
+        for jj=1:ccc.n
+            input_ports[noffsets[kk] + jj] = nnn*"."*ccc.input_ports[jj]
+            output_ports[noffsets[kk] + jj] = nnn*"."*ccc.output_ports[jj]
+        end
+        for jj=1:ccc.m
+            modes[moffsets[kk]+jj] = nnn*"."*ccc.modes[jj]
+        end
+        for jj=1:nis[kk]
+            internal[nioffsets[kk] + jj] = nnn*"."*ccc.internal[jj]
+        end
+    end
+    nci = size(circuit.input_map, 1)
+    # fff = collect(1:nci)
+    # ttt = zeros(Int, nci)
+    for kk=1:nci
+        npn, cn, pn = circuit.input_map[kk,:]
+        ind = indexin([cn*"."*pn], input_ports)[1]
+    #   ttt[kk] = ind
+        if ind > 0
+            input_ports[ind] = npn
+        else
+            error("Could not find input port $cn:$pn in circuit.")
+        end
+    end
+    # P_in = portmapping(fff, ttt, n)
+    # 
+    nco = size(circuit.output_map, 1)
+    # fff = zeros(Int, nco)
+    # ttt = collect(1:nco)
+    for kk=1:nco
+        npn, cn, pn = circuit.output_map[kk,:]
+        ind = indexin([cn*"."*pn], output_ports)[1]
+        # fff[kk] = ind
+        if ind > 0
+            output_ports[ind] = npn
+        else
+            error("Could not find output port $cn:$pn in circuit.")
+        end
+    end
+    # P_out = portmapping(fff, ttt, n)
+    # 
+    # 
+    # D = P_out * (D * P_in)
+    # Di = Di * P_in
+    # B = B * P_in
+    # C = P_out * C
+    # c = P_out * c
+    # 
+    # input_ports = input_ports[convert(Vector{Int}, P_in' * collect(1:n))]
+    # output_ports = input_ports[convert(Vector{Int}, P_out' * collect(1:n))]
+    # 
+    
+    EEE = NLComponent(m,n,q,A,B,C,D,a,c,Ci, Di, ci, ANL_F!,JANL!,modes,input_ports,output_ports, internal)
+    # show(EEE)
+    # show(f)
+    # show(t)
+    # if connections, apply feedback
+    if nfb>0
+        EEE = feedback(EEE, f, t)
+    end
+    
+    # nci = size(circuit.input_map, 1)
+    # fff = collect(1:nci)
+    # ttt = zeros(Int, nci)
+    # for kk=1:nci
+    #   npn, cn, pn = circuit.input_map[kk,:]
+    #   ind = indexin([cn*"."*pn], input_ports)[1]
+    #   ttt[kk] = ind
+    #   if ind > 0
+    #       input_ports[ind] = npn
+    #   else
+    #       error("Could not find input port $cn:$pn in circuit.")
+    #   end
+    # end
+    # P_in = portmapping(fff, ttt, n)
+    # 
+    # nco = size(circuit.output_map, 1)
+    # fff = zeros(Int, nco)
+    # ttt = collect(1:nco)
+    # for kk=1:nco
+    #   npn, cn, pn = circuit.output_map[kk,:]
+    #   ind = indexin([cn*"."*pn], output_ports)[1]
+    #   fff[kk] = ind
+    #   if ind > 0
+    #       output_ports[ind] = npn
+    #   else
+    #       error("Could not find output port $cn:$pn in circuit.")
+    #   end
+    # end
+    # P_out = portmapping(fff, ttt, n)
+    # 
+    # 
+    # D = P_out * (D * P_in)
+    # Di = Di * P_in
+    # B = B * P_in
+    # C = P_out * C
+    # c = P_out * c
+    # 
+    # input_ports = input_ports[convert(Vector{Int}, P_in' * collect(1:n))]
+    # output_ports = input_ports[convert(Vector{Int}, P_out' * collect(1:n))]
+    # 
+    EEE
 end
-		
-					
+        
+                    

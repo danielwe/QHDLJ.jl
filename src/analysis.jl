@@ -334,3 +334,6 @@ end
 	# output_ports::AbstractArray{ASCIIString,1}
 	# internal::AbstractArray{ASCIIString,1}
 
+# function io_rel(C::NLComponent;)
+
+
