@@ -7,7 +7,8 @@ export NLComponent, NLCircuit, NLSystem, nlcircuit,
 	   single_mode_cavity, single_mode_kerr_cavity, nd_opo, two_mode_kerr_cavity,
 	   solve_nlsystem, make_nlode_sde,
 	   inputs, outputs, modes, internal, make_inputs,
-	   find_fixpoint, transferfunction_ee, transferfunction_ie, unwrap!, unwrap
+	   find_fixpoint, transferfunction_ee, transferfunction_ie, unwrap!, unwrap,
+	   make_ANL_F, make_JANL
 
 
 using RK4
@@ -30,6 +31,7 @@ type NLComponent
 	Di::ArrType
 	ci::VType
     ANL_F!::Function # combined nonlinear deterministic part and stochastic
+    ANL_FS::Expr
     JANL!::Function
 	modes::AbstractArray{ASCIIString,1}
 	input_ports::AbstractArray{ASCIIString,1}
@@ -54,10 +56,8 @@ function ninputs(c::NLSystem)
 	end
 end
 
-
-
-
 ANL_F_trivial = ((t, z, w, zdot) -> nothing)
+ANL_FS_trivial = quote end
 JANL_trivial = ((t, z, Jxx, Jxxc) -> nothing)
 
 # NLComponent(m, n, q, A, B, C, D, a, c, ANL_F!=nothing, subcomponents=nothing) = NLComponent(m, n, q, A, B, C, D, a, c, ANL_F!, subcomponents)
@@ -73,7 +73,7 @@ NLComponent(m, n, q, A, B, C, D, a, c) = NLComponent(m, n, q, A, B, C, D, a, c,
 													spzeros(Complex128, 0, m),
 													spzeros(Complex128, 0, n),
 													zeros(Complex128, 0),
-													ANL_F_trivial, JANL_trivial,
+													ANL_F_trivial, ANL_FS_trivial, JANL_trivial,
 													_default_modes(m),
 													_default_ports("In", n),
 													_default_ports("Out",n),
@@ -88,6 +88,7 @@ include("components.jl")
 include("dynamics.jl")
 include("show.jl")
 include("analysis.jl")
+include("symbolic.jl")
 
 
 

@@ -1,4 +1,4 @@
-function make_nlode_sde(C::NLSystem; u_t=nothing, sde=false)
+function make_nlode_sde(C::NLSystem; u_t=nothing, sde=false, symbolic_ANL=false)
     # Create an ode/sde function for a given component and input function u_t. 
     # pass sde=true to get an SDE function
     # pass _eval_fnq=false to get an unevaluated 
@@ -7,7 +7,12 @@ function make_nlode_sde(C::NLSystem; u_t=nothing, sde=false)
 		C = NLComponent(C)
 	end
 	
-    ANL_F! = (C.ANL_F!) != nothing ? (C.ANL_F!) : ((t, z, w, zdot) -> nothing)
+    if symbolic_ANL
+        ANL_F! = make_ANL_F(C)
+    else
+        ANL_F! = (C.ANL_F!) != nothing ? (C.ANL_F!) : ((t, z, w, zdot) -> nothing)
+    end
+
     if u_t == nothing
         const_z = zeros(Complex128, C.n)
         u_t = t -> const_z
@@ -55,14 +60,14 @@ type NLEvolution
 end
 
 
-function solve_nlsystem(C::NLSystem, z0::AbstractVector, tlist::AbstractVector{Float64}, hmax::Float64; sde=true, u_t=nothing, verbose=true, seed=0)
+function solve_nlsystem(C::NLSystem, z0::AbstractVector, tlist::AbstractVector{Float64}, hmax::Float64; sde=true, u_t=nothing, verbose=true, seed=0, symbolic_ANL=false)
     if typeof(C) != NLComponent
 		C = NLComponent(C)
 	end
 
     z0 = (1+0im) * z0
 
-    nlde! = make_nlode_sde(C; u_t=u_t, sde=sde)
+    nlde! = make_nlode_sde(C; u_t=u_t, sde=sde, symbolic_ANL=symbolic_ANL)
 
     inputs = zeros(Complex128, C.n, length(tlist))
     

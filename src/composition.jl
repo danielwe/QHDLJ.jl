@@ -165,7 +165,7 @@ function feedback(E::NLComponent, nfb::Int)
     
     NLComponent(m, n-nfb, E.q, A, B, C, D, a, c, 
         Cip, Dip, cip,
-        E.ANL_F!, E.JANL!, E.modes, 
+        E.ANL_F!, E.ANL_FS, E.JANL!, E.modes, 
         E.input_ports[1:n-nfb], E.output_ports[1:n-nfb], 
         internalp)
 end
@@ -204,7 +204,7 @@ function feedback(E::NLComponent, f::Vector{Int}, t::Vector{Int})
     
     # reduce to special case by permuting the internal channels to the end
     feedback(
-        NLComponent(E.m, E.n, E.q, E.A, B, C, D, E.a, c, E.Ci, Di, E.ci, E.ANL_F!, E.JANL!, E.modes, input_ports, output_ports, E.internal),
+        NLComponent(E.m, E.n, E.q, E.A, B, C, D, E.a, c, E.Ci, Di, E.ci, E.ANL_F!, E.ANL_FS, E.JANL!, E.modes, input_ports, output_ports, E.internal),
         nfb)
 end
 
@@ -444,6 +444,7 @@ function NLComponent(circuit::NLCircuit)
         end
         nothing
     end
+    ANL_FS = compose_ANL_FS(components)
     
     ni = sum(nis)
     
@@ -507,7 +508,7 @@ function NLComponent(circuit::NLCircuit)
     # output_ports = input_ports[convert(Vector{Int}, P_out' * collect(1:n))]
     # 
     
-    EEE = NLComponent(m,n,q,A,B,C,D,a,c,Ci, Di, ci, ANL_F!,JANL!,modes,input_ports,output_ports, internal)
+    EEE = NLComponent(m,n,q,A,B,C,D,a,c,Ci, Di, ci, ANL_F!,ANL_FS, JANL!,modes,input_ports,output_ports, internal)
     # show(EEE)
     # show(f)
     # show(t)

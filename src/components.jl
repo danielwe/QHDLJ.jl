@@ -77,12 +77,18 @@ function single_mode_kerr_cavity(kappas, Delta, chi)
     function ANL_F!(t::Float64, z::AbstractVector{Complex128}, w, out::AbstractVector{Complex128})
         out[1] += chi/1im * conj(z[1]) * z[1] * z[1]
     end
+
+    ANL_FS = quote
+        out[1] += -1im * $chi * conj(z[1]) * z[1] * z[1]
+    end
+
     function JANL!(t::Float64, z::AbstractVector{Complex128}, out1::AbstractArray{Complex128, 2}, out2::AbstractArray{Complex128, 2})
         out1[1,1] = 2chi/1im * conj(z[1]) * z[1]
         out2[1,1] = chi/1im * z[1]^2
     end
     
     E.ANL_F! = ANL_F!
+    E.ANL_FS = ANL_FS
     E.JANL! = JANL!
     E
 end
@@ -114,6 +120,12 @@ function two_mode_kerr_cavity(kappas_a, kappas_b, Deltas, chis)
         out[2] += -1im * (chi_b * conj(z[2]) * z[2] + chi_ab * conj(z[1]) * z[1]) * z[2]
     end
 	
+    ANL_FS = quote
+        out[1] += -1im * ($chi_a * conj(z[1]) * z[1] + $chi_ab * conj(z[2]) * z[2]) * z[1]
+        out[2] += -1im * ($chi_b * conj(z[2]) * z[2] + $chi_ab * conj(z[1]) * z[1]) * z[2]
+    end
+
+
     function JANL!(t::Float64, z::AbstractVector{Complex128}, out1::AbstractArray{Complex128, 2}, out2::AbstractArray{Complex128, 2})
         out1[1,1] = -2im * chi_a * (conj(z[1]) * z[1]) + 1im * chi_ab * (conj(z[2]) * z[2])
         out1[1,2] = -1im * chi_ab * conj(z[2]) * z[1]
@@ -126,6 +138,7 @@ function two_mode_kerr_cavity(kappas_a, kappas_b, Deltas, chis)
     end
     
     E.ANL_F! = ANL_F!
+    E.ANL_FS = ANL_FS
     E.JANL! = JANL!
 	E
 end
@@ -139,6 +152,14 @@ function nd_opo(kappas, chi, Deltas=zeros(2))
         out[2] += chi * z[3] * conj(z[1])
         out[3] += -chi * z[1] * z[2]
     end
+
+
+    ANL_FS = quote
+        out[1] += $chi * z[3] * conj(z[2])
+        out[2] += $chi * z[3] * conj(z[1])
+        out[3] += -$chi * z[1] * z[2]
+    end
+
     function JANL!(t::Float64, z::AbstractVector{Complex128}, out1::AbstractArray{Complex128, 2}, out2::AbstractArray{Complex128, 2})
         out1[:,:] = 0
         out1[1,3] = chi * conj(z[2])
@@ -154,6 +175,7 @@ function nd_opo(kappas, chi, Deltas=zeros(2))
 	names = ["signal", "idler", "pump"]
     
     E.ANL_F! = ANL_F!
+    E.ANL_FS = ANL_FS
     E.JANL! = JANL!
 	E.modes = names
 	E.input_ports = names
