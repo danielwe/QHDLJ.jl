@@ -52,14 +52,14 @@ end
 
 
 function phase(phi)
-	linear_passive_static(speye(1) * exp(1im*phi))
+    linear_passive_static(speye(1) * exp(1im*phi))
 end
 
 
 function displace(amplitudes)
-	if ndims(amplitudes) == 0
-		amplitudes=[amplitudes]
-	end
+    if ndims(amplitudes) == 0
+        amplitudes=[amplitudes]
+    end
     n = size(amplitudes, 1)
     l = reshape(amplitudes, (n, 1))
     S = eye(n)
@@ -95,31 +95,31 @@ end
 
 
 function two_mode_kerr_cavity(kappas_a, kappas_b, Deltas, chis)
-	if length(Deltas) == 2
-		Delta_a, Delta_b = Deltas
-		Delta_ab = 0.
-	elseif length(Deltas) == 3
-		Delta_a, Delta_b, Delta_ab = Deltas
-	else
-		error("Deltas must have the form (Delta_a, Delta_b[, Delta_ab])")
-	end
-	chi_a, chi_b, chi_ab = chis
-	
-	na = length(kappas_a)
-	nb = length(kappas_b)
-	L = [sqrt(reshape(kappas_a, (na, 1))) zeros(na, 1);
-		 zeros(nb, 1) sqrt(reshape(kappas_b, (nb, 1)))]
-	S = speye(na + nb)
-	H = sparse([Delta_a Delta_ab;
-				conj(Delta_ab) Delta_b])
-	E = linear_passive_SLH(S, L, H)
-	
-	
+    if length(Deltas) == 2
+        Delta_a, Delta_b = Deltas
+        Delta_ab = 0.
+    elseif length(Deltas) == 3
+        Delta_a, Delta_b, Delta_ab = Deltas
+    else
+        error("Deltas must have the form (Delta_a, Delta_b[, Delta_ab])")
+    end
+    chi_a, chi_b, chi_ab = chis
+    
+    na = length(kappas_a)
+    nb = length(kappas_b)
+    L = [sqrt(reshape(kappas_a, (na, 1))) zeros(na, 1);
+         zeros(nb, 1) sqrt(reshape(kappas_b, (nb, 1)))]
+    S = speye(na + nb)
+    H = sparse([Delta_a Delta_ab;
+                conj(Delta_ab) Delta_b])
+    E = linear_passive_SLH(S, L, H)
+    
+    
     function ANL_F!(t::Float64, z::AbstractVector{Complex128}, w, out::AbstractVector{Complex128})
         out[1] += -1im * (chi_a * conj(z[1]) * z[1] + chi_ab * conj(z[2]) * z[2]) * z[1]
         out[2] += -1im * (chi_b * conj(z[2]) * z[2] + chi_ab * conj(z[1]) * z[1]) * z[2]
     end
-	
+    
     ANL_FS = quote
         out[1] += -1im * ($chi_a * conj(z[1]) * z[1] + $chi_ab * conj(z[2]) * z[2]) * z[1]
         out[2] += -1im * ($chi_b * conj(z[2]) * z[2] + $chi_ab * conj(z[1]) * z[1]) * z[2]
@@ -131,18 +131,18 @@ function two_mode_kerr_cavity(kappas_a, kappas_b, Deltas, chis)
         out1[1,2] = -1im * chi_ab * conj(z[2]) * z[1]
         out1[2,1] = -1im * chi_ab * conj(z[1]) * z[2]
         out1[2,2] = -2im * chi_b * (conj(z[2]) * z[2]) + 1im * chi_ab * (conj(z[1]) * z[1])
-		out2[1,1] = -1im * chi_a * z[1]^2
-		out2[1,2] = -1im * chi_ab * z[1]*z[2]
-		out2[2,1] = -1im * chi_ab * z[1]*z[2]
-		out2[2,2] = -1im * chi_b * z[2]^2
+        out2[1,1] = -1im * chi_a * z[1]^2
+        out2[1,2] = -1im * chi_ab * z[1]*z[2]
+        out2[2,1] = -1im * chi_ab * z[1]*z[2]
+        out2[2,2] = -1im * chi_b * z[2]^2
     end
     
     E.ANL_F! = ANL_F!
     E.ANL_FS = ANL_FS
     E.JANL! = JANL!
-	E
+    E
 end
-	
+    
 
 
 function nd_opo(kappas, chi, Deltas=zeros(2))
@@ -172,14 +172,14 @@ function nd_opo(kappas, chi, Deltas=zeros(2))
         out2[2,1] = chi * z[3]
     end
     
-	names = ["signal", "idler", "pump"]
+    names = ["signal", "idler", "pump"]
     
     E.ANL_F! = ANL_F!
     E.ANL_FS = ANL_FS
     E.JANL! = JANL!
-	E.modes = names
-	E.input_ports = names
-	E.output_ports = names
+    E.modes = names
+    E.input_ports = names
+    E.output_ports = names
     E
 end
 
