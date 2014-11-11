@@ -75,7 +75,7 @@ end
 function single_mode_kerr_cavity(kappas, Delta, chi)
     E = single_mode_cavity(kappas, Delta)
     function ANL_F!(t::Float64, z::AbstractVector{Complex128}, w, out::AbstractVector{Complex128})
-        out[1] += chi/1im * conj(z[1]) * z[1] * z[1]
+        out[1] += -1im * chi * conj(z[1]) * z[1] * z[1]
     end
 
     ANL_FS = quote
@@ -83,8 +83,8 @@ function single_mode_kerr_cavity(kappas, Delta, chi)
     end
 
     function JANL!(t::Float64, z::AbstractVector{Complex128}, out1::AbstractArray{Complex128, 2}, out2::AbstractArray{Complex128, 2})
-        out1[1,1] = 2chi/1im * conj(z[1]) * z[1]
-        out2[1,1] = chi/1im * z[1]^2
+        out1[1,1] = -2im * chi * conj(z[1]) * z[1]
+        out2[1,1] = -1im * chi * z[1] * z[1]
     end
     
     E.ANL_F! = ANL_F!
@@ -127,10 +127,10 @@ function two_mode_kerr_cavity(kappas_a, kappas_b, Deltas, chis)
 
 
     function JANL!(t::Float64, z::AbstractVector{Complex128}, out1::AbstractArray{Complex128, 2}, out2::AbstractArray{Complex128, 2})
-        out1[1,1] = -2im * chi_a * (conj(z[1]) * z[1]) + 1im * chi_ab * (conj(z[2]) * z[2])
+        out1[1,1] = -2im * chi_a * (conj(z[1]) * z[1]) - 1im * chi_ab * (conj(z[2]) * z[2])
         out1[1,2] = -1im * chi_ab * conj(z[2]) * z[1]
         out1[2,1] = -1im * chi_ab * conj(z[1]) * z[2]
-        out1[2,2] = -2im * chi_b * (conj(z[2]) * z[2]) + 1im * chi_ab * (conj(z[1]) * z[1])
+        out1[2,2] = -2im * chi_b * (conj(z[2]) * z[2]) - 1im * chi_ab * (conj(z[1]) * z[1])
         out2[1,1] = -1im * chi_a * z[1]^2
         out2[1,2] = -1im * chi_ab * z[1]*z[2]
         out2[2,1] = -1im * chi_ab * z[1]*z[2]

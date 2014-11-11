@@ -68,6 +68,8 @@ end
 
 
 function double_up(A, B)
+    A = full(A)
+    B = full(B)
     [A B; conj(B) conj(A)]
 end
 
