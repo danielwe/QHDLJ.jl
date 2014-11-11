@@ -16,7 +16,7 @@ function ode(C::NLComponent, t, z; u_t=nothing)
     zdot
 end
 
-function find_fixpoint(C::NLComponent, z0=nothing, t::Float64=0.; u_t=nothing, tol::Float64=1e-5, maxiter::Int=100, verbose=false)
+function find_fixpoint(C::NLComponent, z0=nothing, t::Float64=0.; u_t=nothing, tol::Float64=1e-5, maxiter::Int=100, alpha_min=.1, verbose=false)
     if z0 == nothing
         z0 = zeros(Complex128, C.m)
     end
@@ -39,7 +39,7 @@ function find_fixpoint(C::NLComponent, z0=nothing, t::Float64=0.; u_t=nothing, t
         nzdot2 = nzdot
         alpha = 1.
         
-        while nzdot2 >= nzdot
+        while nzdot2 >= nzdot && alpha > alpha_min
             
             # perform line search by iterating alpha->1., 1./2, 1./4, ... 
             # until norm of gradient at target point decreases
