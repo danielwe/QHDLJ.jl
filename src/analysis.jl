@@ -1,7 +1,7 @@
 function jacobian(C::NLComponent, t, z)
     ret = zeros(Complex128, 2C.m, 2C.m)
     C.JANL!(t, z, sub(ret, 1:C.m, 1:C.m), sub(ret, 1:C.m, C.m+1 : 2C.m))
-    ret[1:C.m,1:C.m] += C.A
+    ret[1:C.m, 1:C.m] += full(C.A)
     # double up
     ret[C.m+1:end, 1:C.m] = conj(ret[1:C.m, C.m+1 : 2C.m])
     ret[C.m+1:end, C.m+1:end] = conj(ret[1:C.m, 1:C.m])
