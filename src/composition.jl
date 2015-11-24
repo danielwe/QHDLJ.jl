@@ -158,8 +158,8 @@ function feedback(E::NLComponent, nfb::Int)
     Dip_e = E.Di[1:ni, 1:n-nfb]
     Dip_i = E.Di[1:ni, n-nfb+1:n]
     
-    Cip = [E.Ci + Dip_i * KCi; KCi]
-    Dip = [Dip_e + Dip_i * KDie; KDie]
+    Cip = [full(E.Ci) + full(Dip_i * KCi); full(KCi)] |> sparse
+    Dip = [full(Dip_e) + full(Dip_i * KDie); full(KDie)] |> sparse
     cip = [E.ci + Dip_i * Kc; Kc]
     internalp = [E.internal; E.output_ports[n-nfb+1:end]]
     
@@ -559,5 +559,3 @@ function NLComponent(circuit::NLCircuit)
     # 
     EEE
 end
-        
-                    
