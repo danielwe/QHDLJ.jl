@@ -183,4 +183,39 @@ function nd_opo(kappas, chi, Deltas=zeros(2))
     E
 end
 
+function d_opo(kappas, chi, Deltas=zeros(2))
+    E = linear_passive_SLH(speye(2), 
+      sparse(sqrt(eye(2) .* kappas)), 
+      [Deltas[1] 0; 
+       0 Deltas[2]])
+    function ANL_F!(t::Float64, z::AbstractVector{Complex128}, w, out::AbstractVector{Complex128})
+        out[1] += chi * z[2] * conj(z[1])
+        out[2] += -chi * z[1] * z[1]
+    end
+
+
+    ANL_FS = quote
+        out[1] += $chi * z[2] * conj(z[1])
+        out[2] += -$chi * z[1] * z[1]
+    end
+
+    function JANL!(t::Float64, z::AbstractVector{Complex128}, out1::AbstractArray{Complex128, 2}, out2::AbstractArray{Complex128, 2})
+        out1[:,:] = 0
+        out1[1,2] = chi * conj(z[1])
+        out1[2,1] = -chi * z[1]    
+        out2[:,:] = 0
+        out2[1,1] = chi * z[2]
+    end
+    
+    names = ["signal", "pump"]
+    
+    E.ANL_F! = ANL_F!
+    E.ANL_FS = ANL_FS
+    E.JANL! = JANL!
+    E.modes = names
+    E.input_ports = names
+    E.output_ports = names
+    E
+end
+
 # TODO add free carrier models (including Kerr and thermal effects), two-mode cavities, two-way components

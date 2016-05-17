@@ -281,7 +281,7 @@ function estimate_spectrum(tlist, output_data)
     omegas, spec
 end
 
-# function power_spectral_density(C::NLComponent, z, omega, outputs::AbstractArray{ASCIIString,1}, theta=0.; t::Float64=0.)
+# function power_spectral_density(C::NLComponent, z, omega, outputs::AbstractArray{AbstractString,1}, theta=0.; t::Float64=0.)
 #   P = power_spectral_density(C, z, omega, theta; t=t)
 #   indices = indexin(outputs, C.output_ports)
 #   ret = 
@@ -331,10 +331,10 @@ end
     # ci::VType
     #     ANL_F!::Function # combined nonlinear deterministic part and stochastic
     #     JANL!::Function
-    # modes::AbstractArray{ASCIIString,1}
-    # input_ports::AbstractArray{ASCIIString,1}
-    # output_ports::AbstractArray{ASCIIString,1}
-    # internal::AbstractArray{ASCIIString,1}
+    # modes::AbstractArray{AbstractString,1}
+    # input_ports::AbstractArray{AbstractString,1}
+    # output_ports::AbstractArray{AbstractString,1}
+    # internal::AbstractArray{AbstractString,1}
 
 # function io_rel(C::NLComponent;)
 

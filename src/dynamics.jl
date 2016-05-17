@@ -97,7 +97,7 @@ function solve_nlsystem(C::NLSystem, z0::AbstractVector, tlist::AbstractVector{F
 end
 
 function inputs(e::NLEvolution, names; transp=true, add_noise=false)
-    if (typeof(names) <: String)
+    if (typeof(names) <: AbstractString)
         names = [names]
     end 
 
@@ -120,7 +120,7 @@ function inputs(e::NLEvolution, names; transp=true, add_noise=false)
 end
 
 function outputs(e::NLEvolution, names; transp=true, add_noise=false)
-    if (typeof(names) <: String)
+    if (typeof(names) <: AbstractString)
         names = [names]
     end 
 
@@ -144,7 +144,7 @@ function outputs(e::NLEvolution, names; transp=true, add_noise=false)
 end
 
 function modes(e::NLEvolution, names; transp=true)
-    if (typeof(names) <: String)
+    if (typeof(names) <: AbstractString)
         names = [names]
     end 
 
@@ -161,7 +161,7 @@ function modes(e::NLEvolution, names; transp=true)
 end
 
 function internal(e::NLEvolution, names; transp=true, add_noise=false)
-    if (typeof(names) <: String)
+    if (typeof(names) <: AbstractString)
         names = [names]
     end 
 
@@ -185,7 +185,7 @@ end
 
 
 function make_inputs(system, names, input_fn)
-    if (typeof(names) <: String)
+    if (typeof(names) <: AbstractString)
         names = [names]
         wrapinput = true
     else
@@ -193,7 +193,7 @@ function make_inputs(system, names, input_fn)
     end
 
     inputs = system.input_ports
-    names = convert(Vector{ASCIIString}, names)
+    names = convert(Vector{AbstractString}, names)
     m = length(inputs)
     n = length(names)
     indices = indexin(names, inputs)

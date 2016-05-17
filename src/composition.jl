@@ -235,10 +235,10 @@ end
 # end
 
 
-function nlcircuit(components::Dict, connections::AbstractArray{ASCIIString, 2}, input_map::AbstractArray{ASCIIString, 2}, output_map::AbstractArray{ASCIIString, 2}; flatten=true)
-    all_components = Dict{ASCIIString, NLComponent}()
+function nlcircuit(components::Dict, connections::AbstractArray, input_map, output_map; flatten=true)
+    all_components = Dict{AbstractString, NLComponent}()
     all_connections = copy(connections)
-    new_internal_connections=Array(ASCIIString, (0, 4))
+    new_internal_connections=Array(AbstractString, (0, 4))
     all_inputs = copy(input_map)
     all_outputs = copy(output_map)
     
@@ -247,8 +247,8 @@ function nlcircuit(components::Dict, connections::AbstractArray{ASCIIString, 2},
         if typeof(comp) == NLCircuit
             if flatten
                 
-                input_dict = {comp.input_map[kk,1]=> comp.input_map[kk,2:3][:] for kk=1:size(comp.input_map,1)}
-                output_dict = {comp.output_map[kk,1]=> comp.output_map[kk,2:3][:] for kk=1:size(comp.output_map,1)}
+                input_dict = Dict([comp.input_map[kk,1]=> comp.input_map[kk,2:3][:] for kk=1:size(comp.input_map,1)])
+                output_dict = Dict([comp.output_map[kk,1]=> comp.output_map[kk,2:3][:] for kk=1:size(comp.output_map,1)])
                 
                 for (cname_int, comp_int) in comp.components
                     all_components[cname*"."*cname_int] = comp_int
@@ -332,14 +332,14 @@ function nlcircuit(components::Dict, connections::AbstractArray{ASCIIString, 2},
     NLCircuit(all_components, all_connections, all_inputs, all_outputs)
 end
 
-nlcircuit(components::Dict; flatten=false) = nlcircuit(components, Array(ASCIIString, (0, 4)); flatten=flatten)
-nlcircuit(components::Dict, connections::AbstractArray{ASCIIString, 2}; flatten=false) = nlcircuit(components, connections, Array(ASCIIString, (0, 3)), Array(ASCIIString, (0, 3)); flatten=flatten)
+nlcircuit(components::Dict; flatten=false) = nlcircuit(components, Array(AbstractString, (0, 4)); flatten=flatten)
+nlcircuit(components::Dict, connections::AbstractArray; flatten=false) = nlcircuit(components, connections, Array(AbstractString, (0, 3)), Array(AbstractString, (0, 3)); flatten=flatten)
 
 
 function NLComponent(circuit::NLCircuit)
     
     local components::Vector{NLComponent} = collect(values(circuit.components))
-    local names::Vector{ASCIIString} = collect(keys(circuit.components))
+    local names::Vector{AbstractString} = collect(keys(circuit.components))
     
     for kk=1:length(names)
         @assert circuit.components[names[kk]] == components[kk]
@@ -358,7 +358,8 @@ function NLComponent(circuit::NLCircuit)
     nioffsets = [0; cumsum(nis)]
     qoffsets = [0; cumsum(qs)]
     
-    noffsets_by_name = {name => n for (name,n) in zip(names, noffsets)}
+    noffsets_by_name = Dict([name => n 
+      for (name,n) in zip(names, noffsets)])
     
     m = sum(ms)
     n = sum(ns)
@@ -433,7 +434,7 @@ function NLComponent(circuit::NLCircuit)
         local moff::Int64 = 0
         local ccc::NLComponent
         local kk::Int64
-        local rng::Range1{Int64}
+        local rng::Range{Int64}
         for kk=1:nc
             ccc = components[kk]
             if ccc.m > 0
@@ -448,10 +449,10 @@ function NLComponent(circuit::NLCircuit)
     
     ni = sum(nis)
     
-    input_ports = Array(ASCIIString, n)
-    output_ports = Array(ASCIIString, n)
-    modes = Array(ASCIIString, m)
-    internal = Array(ASCIIString, ni)
+    input_ports = Array(AbstractString, n)
+    output_ports = Array(AbstractString, n)
+    modes = Array(AbstractString, m)
+    internal = Array(AbstractString, ni)
     
     for kk=1:nc
         nnn = names[kk]

@@ -51,18 +51,18 @@ function compose_ANL_FS(ANL_FSs, ms, qs)
     moffset = ms[1]
     qoffset = qs[1]
     @assert ANL_FSs[1].head == :block
-    assignments = [filter(x -> isa(x, Expr), ANL_FSs[1].args)]
+    assignments = collect(filter(x -> isa(x, Expr), ANL_FSs[1].args))
     for jj=2:N
-        substitutions = {:(z[$kk]) => :(z[$(kk+moffset)]) for kk = 1:ms[jj]}
-        merge!(substitutions, {
+        substitutions = Dict([:(z[$kk]) => :(z[$(kk+moffset)]) for kk = 1:ms[jj]])
+        merge!(substitutions, Dict([
             :(out[$kk]) => :(out[$(kk+moffset)]) for kk = 1:ms[jj]
-            })
-        merge!(substitutions, {
+            ]))
+        merge!(substitutions, Dict([
             :(w[$kk]) => :(w[$(kk+qoffset)]) for kk = 1:qs[jj]
-            })
+            ]))
         @assert ANL_FSs[jj].head == :block
-        assignments = [assignments; 
-                       filter(x -> isa(x, Expr), substitute(ANL_FSs[jj], substitutions).args)]
+        append!(assignments, 
+                       collect(filter(x -> isa(x, Expr), substitute(ANL_FSs[jj], substitutions).args)))
         moffset += ms[jj]
         qoffset += qs[jj]
     end
@@ -79,14 +79,14 @@ end
 
 
 function generate_JANLS(ANL_FS::Expr, m::Int)
-    subs = {
+    subs = Dict([
         :(z[$kk]) => symbol("z$kk") for kk=1:m
-    }
-    merge!(subs, {
+    ])
+    merge!(subs, Dict([
         :(conj(z[$kk])) => symbol("z$(kk)__conj") for kk=1:m
-        })
+        ]))
 
-    inverse_subs = {subs[kkk] => kkk for kkk in keys(subs)}
+    inverse_subs = Dict([subs[kkk] => kkk for kkk in keys(subs)])
 
     @assert ANL_FS.head == :block
 

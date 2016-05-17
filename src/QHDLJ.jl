@@ -33,20 +33,20 @@ type NLComponent
     ANL_F!::Function # combined nonlinear deterministic part and stochastic
     ANL_FS::Expr
     JANL!::Function
-    modes::AbstractArray{ASCIIString,1}
-    input_ports::AbstractArray{ASCIIString,1}
-    output_ports::AbstractArray{ASCIIString,1}
-    internal::AbstractArray{ASCIIString,1}
+    modes::AbstractArray{AbstractString,1}
+    input_ports::AbstractArray{AbstractString,1}
+    output_ports::AbstractArray{AbstractString,1}
+    internal::AbstractArray{AbstractString,1}
 end
 
 type NLCircuit
-    components::Dict{ASCIIString,NLComponent}
-    connections::AbstractArray{ASCIIString, 2}
-    input_map::AbstractArray{ASCIIString, 2}
-    output_map::AbstractArray{ASCIIString, 2}
+    components::Dict{AbstractString,NLComponent}
+    connections::AbstractArray{AbstractString, 2}
+    input_map::AbstractArray{AbstractString, 2}
+    output_map::AbstractArray{AbstractString, 2}
 end
 
-NLSystem = Union(NLCircuit, NLComponent)
+NLSystem = Union{NLCircuit, NLComponent}
 
 function ninputs(c::NLSystem)
     if typeof(c) == NLComponent
@@ -61,11 +61,11 @@ ANL_FS_trivial = quote end
 JANL_trivial = ((t, z, Jxx, Jxxc) -> nothing)
 
 # NLComponent(m, n, q, A, B, C, D, a, c, ANL_F!=nothing, subcomponents=nothing) = NLComponent(m, n, q, A, B, C, D, a, c, ANL_F!, subcomponents)
-function _default_ports(prefix::ASCIIString, n::Int)
-    ASCIIString[prefix*string(kk) for kk=1:n]
+function _default_ports(prefix::AbstractString, n::Int)
+    AbstractString[prefix*string(kk) for kk=1:n]
 end
 function _default_modes(m::Int)
-    ASCIIString["m"*string(kk) for kk=1:m]
+    AbstractString["m"*string(kk) for kk=1:m]
 end
 
 
@@ -77,7 +77,7 @@ NLComponent(m, n, q, A, B, C, D, a, c) = NLComponent(m, n, q, A, B, C, D, a, c,
                                                     _default_modes(m),
                                                     _default_ports("In", n),
                                                     _default_ports("Out",n),
-                                                    Array(ASCIIString, (0,))
+                                                    Array(AbstractString, (0,))
                                                     )
 
 
