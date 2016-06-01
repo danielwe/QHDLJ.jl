@@ -5,7 +5,7 @@ export NLComponent, NLCircuit, NLSystem, nlcircuit,
        linear_passive_SLH, linear_passive_static, 
        beamsplitter, phase, displace,
        single_mode_cavity, single_mode_kerr_cavity, nd_opo, two_mode_kerr_cavity,
-       solve_nlsystem, make_nlode_sde,
+       solve_nlsystem, make_nlode_sde, d_opo, 
        inputs, outputs, modes, internal, make_inputs,
        find_fixpoint, transferfunction_ee, transferfunction_ie, unwrap!, unwrap,
        make_ANL_F, make_JANL
