@@ -94,8 +94,10 @@ function generate_JANLS(ANL_FS::Expr, m::Int)
     seen = Set{Int64}()
     for kk = 1:length(ANL_FS.args)
         if !isa(ANL_FS.args[kk], Expr)
+          if !isa(ANL_FS.args[kk], LineNumberNode) 
             println("Cannot match $(ANL_FS.args[kk])")
-            continue
+          end
+          continue
         end
         if ANL_FS.args[kk].head == :(+=)
             lhs, rhs = ANL_FS.args[kk].args
