@@ -119,5 +119,5 @@ function generate_JANLS(ANL_FS::Expr, m::Int)
     
     J1S = [(J1[kk,ll]!= 0 ? :(out1[$kk,$ll]=$(J1[kk,ll])) : 0) for kk=1:m, ll=1:m]
     J2S = [(J2[kk,ll]!= 0 ? :(out2[$kk,$ll]=$(J2[kk,ll])) : 0) for kk=1:m, ll=1:m]
-    Expr(:block, filter(x -> x !=0 , [J1S[:],J2S[:]])...)
+    Expr(:block, filter(x -> x !=0 , [J1S[:]; J2S[:]])...)
 end
