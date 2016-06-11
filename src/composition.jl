@@ -12,7 +12,7 @@ end
 
 function spblocks(A, B...)
     if length(B) >= 1
-        spblocks(A, apply(spblocks, B))
+        spblocks(A, spblocks(B...))
     else
         A
     end
